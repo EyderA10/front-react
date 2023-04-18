@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   TextField,
   FormControl,
@@ -11,9 +12,14 @@ import {
   Grid,
   CardActions,
   Card,
+  CardContent,
+  IconButton,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import {
+  Cancel as CancelIcon,
+  CloudUpload as CloudUploadIcon,
+} from "@mui/icons-material";
 
 const useStyles = makeStyles((theme) => ({
   formControl: {
@@ -24,14 +30,32 @@ const useStyles = makeStyles((theme) => ({
     marginTop: theme.spacing(2),
   },
   uploadButton: {
-    margin: theme.spacing(2, 0),
+    marginLeft: "auto",
   },
   input: {
     display: "none",
   },
+  button: {
+    marginRight: theme.spacing(2),
+  },
+  thumbnail: {
+    position: "relative",
+    margin: theme.spacing(1),
+  },
+  thumbnailImage: {
+    width: 100,
+    height: 100,
+    objectFit: "cover",
+  },
+  thumbnailRemoveButton: {
+    position: "absolute",
+    bottom: 90,
+    left: 0,
+    right: 0,
+  },
 }));
 
-export const Form = () => {
+export const PostJob = () => {
   const classes = useStyles();
   const [formData, setFormData] = useState({
     firstName: "",
@@ -47,11 +71,17 @@ export const Form = () => {
     budget: "",
   });
 
+  const [errors, setErrors] = useState({});
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prevState) => ({
       ...prevState,
       [name]: value,
+    }));
+    setErrors((prevState) => ({
+      ...prevState,
+      [name]: validateField(name, value),
     }));
   };
 
@@ -61,20 +91,86 @@ export const Form = () => {
       ...prevState,
       clothingTypes: value,
     }));
+    setErrors((prevState) => ({
+      ...prevState,
+      clothingTypes: validateField("clothingTypes", value),
+    }));
   };
 
   const handleImageUpload = (e) => {
-    const { files } = e.target;
+    const uploadedImages = Array.from(e.target.files);
+    const newImages = uploadedImages.map((image) => ({
+      id: uuidv4(),
+      file: image,
+    }));
     setFormData((prevState) => ({
       ...prevState,
-      images: [...prevState.images, ...files],
+      images: [...prevState.images, ...newImages],
     }));
+  };
+
+  const handleRemoveImage = (id) => {
+    const updatedImages = formData.images.filter((image) => image.id !== id);
+    setFormData({
+      ...formData,
+      images: updatedImages,
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     // Aquí puedes enviar los datos del formulario al backend para procesar la solicitud
-    console.log(formData);
+    const validationErrors = validateForm(formData);
+    if (Object.keys(validationErrors).length === 0) {
+      // Call your API here
+      console.log(formData);
+    } else {
+      setErrors(validationErrors);
+    }
+  };
+
+  const validateField = (name, value) => {
+    switch (name) {
+      case "firstName":
+        return !/^[a-zA-Z]+$/.test(value)
+          ? "Name can only contain letters"
+          : "";
+      case "lastName":
+        return !/^[a-zA-Z]+$/.test(value)
+          ? "Name can only contain letters"
+          : "";
+      case "phoneNumber":
+        return !/^[0-9]$/.test(value)
+          ? "Phone number must contain only numbers"
+          : "";
+      case "emailAddress":
+        return !/^\S+@\S+.\S+$/.test(value) ? "Invalid email address" : "";
+      case "address":
+        return value.trim() === "" ? "Address is required" : "";
+      case "postcode":
+        return !/^[0-9]$/.test(value)
+          ? "Postcode must be number"
+          : "";
+      case "state":
+        return value.trim() === "" ? "State is required" : "";
+      case "clothingTypes":
+        return value.length === 0
+          ? "At least one clothing type must be selected"
+          : "";
+      case "description":
+        return value.trim() === "" ? "Description is required" : "";
+      default:
+        return "";
+    }
+  };
+
+  const validateForm = (formData) => {
+    const errors = {};
+    Object.keys(formData).forEach((fieldName) => {
+      const value = formData[fieldName];
+      errors[fieldName] = validateField(fieldName, value);
+    });
+    return errors;
   };
 
   return (
@@ -92,6 +188,8 @@ export const Form = () => {
               name="firstName"
               value={formData.firstName}
               onChange={handleInputChange}
+              error={Boolean(errors.firstName)}
+              helperText={errors.firstName}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -102,6 +200,8 @@ export const Form = () => {
               name="lastName"
               value={formData.lastName}
               onChange={handleInputChange}
+              error={Boolean(errors.lastName)}
+              helperText={errors.lastName}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -112,6 +212,8 @@ export const Form = () => {
               name="phoneNumber"
               value={formData.phoneNumber}
               onChange={handleInputChange}
+              error={Boolean(errors.phoneNumber)}
+              helperText={errors.firstName}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -122,6 +224,8 @@ export const Form = () => {
               name="emailAddress"
               value={formData.emailAddress}
               onChange={handleInputChange}
+              error={Boolean(errors.emailAddress)}
+              helperText={errors.emailAddress}
             />
           </Grid>
           <Grid item xs={12}>
@@ -132,6 +236,8 @@ export const Form = () => {
               name="address"
               value={formData.address}
               onChange={handleInputChange}
+              error={Boolean(errors.address)}
+              helperText={errors.address}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -142,10 +248,12 @@ export const Form = () => {
               name="postcode"
               value={formData.postcode}
               onChange={handleInputChange}
+              error={Boolean(errors.postcode)}
+              helperText={errors.postcode}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <FormControl required fullWidth className={classes.formControl}>
+            <FormControl required error={Boolean(errors.state)} fullWidth className={classes.formControl}>
               <InputLabel id="state-label">State</InputLabel>
               <Select
                 labelId="state-label"
@@ -153,6 +261,7 @@ export const Form = () => {
                 value={formData.state}
                 label="State"
                 onChange={handleInputChange}
+                error={Boolean(errors.state)}
               >
                 <MenuItem value="">
                   <em>None</em>
@@ -212,7 +321,7 @@ export const Form = () => {
             </FormControl>
           </Grid>
           <Grid item xs={12}>
-            <FormControl required fullWidth className={classes.formControl}>
+            <FormControl required fullWidth error={Boolean(errors.clothingTypes)} className={classes.formControl}>
               <InputLabel id="clothing-types-label">
                 Types of Clothing
               </InputLabel>
@@ -223,6 +332,7 @@ export const Form = () => {
                 label="Types of Clothing"
                 value={formData.clothingTypes}
                 onChange={handleClothingTypesChange}
+                error={Boolean(errors.clothingTypes)}
               >
                 <MenuItem value="">
                   <em>None</em>
@@ -258,6 +368,8 @@ export const Form = () => {
               multiline
               rows={4}
               variant="outlined"
+              error={Boolean(errors.description)}
+              helperText={errors.description}
             />
           </Grid>
           <Grid item xs={12}>
@@ -273,7 +385,7 @@ export const Form = () => {
             />
           </Grid>
         </Grid>
-        <Grid marginTop={1} container spacing={2}>
+        <Grid marginTop={1} container spacing={1}>
           <Grid item xs={12}>
             <Box display="flex" justifyContent="center">
               <input
@@ -298,6 +410,34 @@ export const Form = () => {
               </label>
             </Box>
           </Grid>
+          <Box
+            display="flex"
+            justifyContent="center"
+            flexWrap={formData.images.length > 2 ? "wrap" : "nowrap"}
+            overflow="auto"
+            width="100%"
+          >
+            {formData.images.map((image) => (
+              <Grid item key={image.id}>
+                <Card className={classes.thumbnail}>
+                  <CardContent>
+                    <img
+                      src={URL.createObjectURL(image.file)}
+                      className={classes.thumbnailImage}
+                      alt=""
+                    />
+                    <IconButton
+                      className={classes.thumbnailRemoveButton}
+                      onClick={() => handleRemoveImage(image.id)}
+                      color="error"
+                    >
+                      <CancelIcon />
+                    </IconButton>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Box>
           <Typography
             width={"100%"}
             textAlign={"center"}

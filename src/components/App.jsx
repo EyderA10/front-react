@@ -1,5 +1,4 @@
 import { AppRouter } from "../router/router";
-import { Form } from "./form/Form";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 export const App = () => {
