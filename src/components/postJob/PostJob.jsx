@@ -213,7 +213,7 @@ export const PostJob = () => {
               value={formData.phoneNumber}
               onChange={handleInputChange}
               error={Boolean(errors.phoneNumber)}
-              helperText={errors.firstName}
+              helperText={errors.phoneNumber}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
