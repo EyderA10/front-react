@@ -140,7 +140,7 @@ export const PostJob = () => {
           ? "Name can only contain letters"
           : "";
       case "phoneNumber":
-        return !/^[0-9]$/.test(value)
+        return !/^[0-9]/.test(value)
           ? "Phone number must contain only numbers"
           : "";
       case "emailAddress":
@@ -328,7 +328,6 @@ export const PostJob = () => {
               <Select
                 labelId="clothing-types-label"
                 name="clothingTypes"
-                multiple
                 label="Types of Clothing"
                 value={formData.clothingTypes}
                 onChange={handleClothingTypesChange}

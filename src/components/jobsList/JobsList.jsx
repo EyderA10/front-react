@@ -172,7 +172,7 @@ export const JobList = () => {
             <Box key={job.id} m={1}>
               <Box border={1} p={2}>
                 <Typography variant="h6" textAlign={'center'}>
-                  {job.type}
+                  {job.type} - {job.making}
                 </Typography>
                 <Typography variant="body1">Status: {job.status}</Typography>
                 <Typography variant="body1">
@@ -209,13 +209,19 @@ export const JobList = () => {
           {selectedJob && (
             <>
               <Typography variant="h4" textAlign={'center'}>
-                {selectedJob.type}
+                {selectedJob.type} - {selectedJob.making}
+              </Typography>
+              <Typography variant="body1">
+                Customer: Eyder Garcia
+              </Typography>
+              <Typography variant="body1">
+                Phone Number: 12412424
               </Typography>
               <Typography variant="body1">
                 Status: {selectedJob.status}
               </Typography>
               <Typography variant="body1">
-                Making: {selectedJob.making}
+                Making: lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
               </Typography>
               <Typography variant="body1">
                 Location: {selectedJob.location}
