@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -9,8 +9,14 @@ import {
   TextField,
   Typography,
   Modal,
+  Grid,
+  Card,
+  CardContent,
+  Alert,
 } from "@mui/material";
 import { makeStyles } from "@mui/styles";
+import { states, types } from "../../helpers/constants";
+import { apiUrl, getJobById, getJobs, sendQuote } from "../../services/api";
 
 const useStyles = makeStyles((theme) => ({
   modalContainer: {
@@ -24,7 +30,7 @@ const useStyles = makeStyles((theme) => ({
     transform: "translate(-50%, -50%)",
   },
   formControl: {
-    margin: '0 20px',
+    margin: "0 20px",
     width: "13%",
   },
   input: {
@@ -33,48 +39,46 @@ const useStyles = makeStyles((theme) => ({
   button: {
     margin: theme.spacing(1),
   },
+  thumbnail: {
+    position: "relative",
+    margin: theme.spacing(1),
+  },
+  thumbnailImage: {
+    width: 100,
+    height: 100,
+    objectFit: "cover",
+  },
 }));
-
-const jobsData = [
-  {
-    id: 1,
-    type: "Tailoring",
-    making: "Dresses",
-    status: "Available",
-    quotationCount: 5,
-    location: "New York",
-  },
-  {
-    id: 2,
-    type: "Embroidery",
-    making: "Shirts",
-    status: "Available",
-    quotationCount: 2,
-    location: "London",
-  },
-  {
-    id: 3,
-    type: "Printing",
-    making: "Hoodies",
-    status: "Unavailable",
-    quotationCount: 0,
-    location: "Paris",
-  },
-];
 
 export const JobList = () => {
   const classes = useStyles();
 
-  const [jobs, setJobs] = useState(jobsData);
+  const [jobs, setJobs] = useState([]);
   const [open, setOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState(null);
   const [selectedLocation, setSelectedLocation] = useState("");
   const [selectedMaking, setSelectedMaking] = useState("");
   const [price, setPrice] = useState("");
   const [comments, setComments] = useState("");
+  const [quotations, setQuotations] = useState(0);
+  const [alert, setAlert] = useState({ message: "", severity: "" });
 
-  const handleOpen = (job) => {
-    setSelectedJob(job);
+  useEffect(() => {
+    const gettingJobs = async () => {
+      const data = await getJobs(selectedLocation, selectedMaking);
+      setJobs(data);
+      let total = 0;
+      data.forEach((job) => {
+        total += job.quotations.length;
+      });
+      setQuotations(total);
+    };
+    gettingJobs();
+  }, [selectedLocation, selectedMaking]);
+
+  const handleOpen = async (job) => {
+    const jobSelected = await getJobById(job.id);
+    setSelectedJob(jobSelected);
     setOpen(true);
   };
 
@@ -98,31 +102,27 @@ export const JobList = () => {
     setComments(event.target.value);
   };
 
-  const handleSendQuote = () => {
-    // send quote
+  const handleSendQuote = async () => {
+    const response = await sendQuote({price, comments}, selectedJob?.id)
+    if (response?.code === 200) {
+      setAlert({ message: response?.message, severity: "success" });
+    }else {
+      setAlert({ message: "Error to send a quote", severity: "error" });
+      console.log(response);
+    }
     handleClose();
   };
 
-  const filterJobs = (job) => {
-    if (
-      selectedLocation !== "" &&
-      job.location.toLowerCase() !== selectedLocation.toLowerCase()
-    ) {
-      return false;
-    }
-    if (
-      selectedMaking !== "" &&
-      job.making.toLowerCase() !== selectedMaking.toLowerCase()
-    ) {
-      return false;
-    }
-    return true;
-  };
-
-  const filteredJobs = jobs.filter(filterJobs);
-
   return (
     <>
+    {alert.message && (
+        <Alert
+          severity={alert.severity}
+          onClose={() => setAlert({ message: "", severity: "" })}
+        >
+          {alert.message}
+        </Alert>
+      )}
       <Box width={"100%"} sx={{ p: 3 }} display="flex" justifyContent="center">
         <FormControl sx={{ mr: 2 }} className={classes.formControl}>
           <InputLabel id="location-select-label">Location</InputLabel>
@@ -136,9 +136,11 @@ export const JobList = () => {
             <MenuItem value="">
               <em>All</em>
             </MenuItem>
-            <MenuItem value="new york">New York</MenuItem>
-            <MenuItem value="london">London</MenuItem>
-            <MenuItem value="paris">Paris</MenuItem>
+            {states.map((state, idx) => (
+              <MenuItem key={idx} value={state.label}>
+                {state.label}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
         <FormControl className={classes.formControl}>
@@ -153,33 +155,30 @@ export const JobList = () => {
             <MenuItem value="">
               <em>All</em>
             </MenuItem>
-            <MenuItem value="dresses">Dresses</MenuItem>
-            <MenuItem value="shirts">Shirts</MenuItem>
-            <MenuItem value="hoodies">Hoodies</MenuItem>
+            {types.map((type, idx) => (
+              <MenuItem key={idx} value={type.label}>
+                {type.label}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
       </Box>
       <Box display="flex" justifyContent="center">
-        <Typography variant="h5">
-          Total quotations:{" "}
-          {filteredJobs.reduce((total, job) => total + job.quotationCount, 0)}
-        </Typography>
+        <Typography variant="h5">Total quotations: {quotations}</Typography>
       </Box>
 
-      {filteredJobs.length > 0 ? (
+      {jobs.length > 0 ? (
         <Box display="flex" justifyContent="center" flexWrap="wrap">
-          {filteredJobs.map((job) => (
+          {jobs.map((job) => (
             <Box key={job.id} m={1}>
               <Box border={1} p={2}>
-                <Typography variant="h6" textAlign={'center'}>
-                  {job.type} - {job.making}
+                <Typography variant="h6" textAlign={"center"}>
+                  {job.type_clothing}
                 </Typography>
                 <Typography variant="body1">Status: {job.status}</Typography>
+                <Typography variant="body1">Location: {job.state}</Typography>
                 <Typography variant="body1">
-                  Location: {job.location}
-                </Typography>
-                <Typography variant="body1">
-                  Quotations: {job.quotationCount}
+                  Quotations: {job.quotations.length}
                 </Typography>
                 <Button
                   className={classes.button}
@@ -208,27 +207,51 @@ export const JobList = () => {
         <Box className={classes.modalContainer}>
           {selectedJob && (
             <>
-              <Typography variant="h4" textAlign={'center'}>
-                {selectedJob.type} - {selectedJob.making}
+              <Typography variant="h4" textAlign={"center"}>
+                {selectedJob.type_clothing}
               </Typography>
               <Typography variant="body1">
-                Customer: Eyder Garcia
+                Customer: {`${selectedJob.first_name} ${selectedJob.last_name}`}
               </Typography>
               <Typography variant="body1">
-                Phone Number: 12412424
+                Phone Number: {selectedJob.phone_number}
               </Typography>
               <Typography variant="body1">
                 Status: {selectedJob.status}
               </Typography>
               <Typography variant="body1">
-                Making: lorem ipsum lorem ipsum lorem ipsum lorem ipsum lorem ipsum
+                Making: {selectedJob.description}
               </Typography>
               <Typography variant="body1">
-                Location: {selectedJob.location}
+                Location: {selectedJob.state}
               </Typography>
               <Typography variant="body1">
-                Quotations: {selectedJob.quotationCount}
+                Quotations: {selectedJob.quotations.length}
               </Typography>
+              <Typography variant="body1">
+                Images:
+              </Typography>
+                <Box
+                  display="flex"
+                  justifyContent="center"
+                  flexWrap={selectedJob.imageUrls.length > 2 ? "wrap" : "nowrap"}
+                  overflow="auto"
+                  width="100%"
+                >
+                  {selectedJob.imageUrls.map((image, idx) => (
+                    <Grid item key={idx}>
+                      <Card className={classes.thumbnail}>
+                        <CardContent>
+                          <img
+                            src={apiUrl + image}
+                            className={classes.thumbnailImage}
+                            alt=""
+                          />
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Box>
               <TextField
                 id="outlined-basic"
                 label="Price"
